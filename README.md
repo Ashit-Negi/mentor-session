@@ -23,3 +23,10 @@ the app allows:
 - create authentication middleware(protect routes and req.user)
 - implemented role-based access control(student / mentor)
 - tested apis using the postman
+
+  part 2
+
+- created session system
+- mentor can create sessions
+- strudent can join session via id
+- session can be ended
