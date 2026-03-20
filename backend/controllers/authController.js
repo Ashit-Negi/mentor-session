@@ -28,7 +28,7 @@ const signup = async (req, res) => {
       user,
     });
   } catch (error) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -53,7 +53,7 @@ const login = async (req, res) => {
         role: user.role,
       },
       process.env.JWT_SECRET,
-      { expiresIn: "1D" },
+      { expiresIn: "1d" },
     );
     res.json({
       msg: "Login successful",
@@ -62,7 +62,7 @@ const login = async (req, res) => {
     });
   } catch (error) {
     res.status(500).json({
-      error: err.message,
+      error: error.message,
     });
   }
 };

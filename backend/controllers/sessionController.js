@@ -6,12 +6,12 @@ const createSession = async (req, res) => {
     const session = await Session.create({
       mentorId: req.user.id,
     });
-    res.sjon({
+    res.json({
       msg: "Session created",
       session,
     });
   } catch (error) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: error.message });
   }
 };
 
@@ -29,7 +29,7 @@ const joinSession = async (req, res) => {
       session,
     });
   } catch (error) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: error.message });
   }
 };
 

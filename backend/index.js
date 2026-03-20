@@ -6,7 +6,7 @@ const cors = require("cors");
 
 const authRoutes = require("./routes/authRoutes");
 const testRoutes = require("./routes/testRoutes");
-const sessionRoutes = require("./routes/sessiionRoutes");
+const sessionRoutes = require("./routes/sessionRoutes");
 const app = express();
 
 // middleware
