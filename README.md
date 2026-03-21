@@ -30,3 +30,10 @@ the app allows:
 - mentor can create sessions
 - strudent can join session via id
 - session can be ended
+
+# day3
+
+- implemented socket.io for real-time communication
+- built real-time chat system
+- added session-based room logic
+- ensure stable communication
