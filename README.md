@@ -31,9 +31,20 @@ the app allows:
 - strudent can join session via id
 - session can be ended
 
-# day3
+# day 3-4
 
 - implemented socket.io for real-time communication
 - built real-time chat system
 - added session-based room logic
 - ensure stable communication
+
+# day 5-6
+
+- built frontend layout using react-vite.
+- created component-based architecture (chat , layout , etc.)
+- designed session layout(editor , video , chat)
+- integrated real-time chat with socket.io in frontend
+- implemented expandable chat UI
+- added message UI with left/right alignment
+- improved chat UI by click outside to close the chat
+- and used TailwindCSS for designed and making responsive UI

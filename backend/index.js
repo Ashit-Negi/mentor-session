@@ -5,6 +5,7 @@ const connectDB = require("./config/db");
 const cors = require("cors");
 const http = require("http");
 const { Server } = require("socket.io");
+
 const authRoutes = require("./routes/authRoutes");
 const testRoutes = require("./routes/testRoutes");
 const sessionRoutes = require("./routes/sessionRoutes");
@@ -25,22 +26,27 @@ const io = new Server(server, {
   },
 });
 
-// this is for to handle the socket connectin
+// SOCKET LOGIC
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  //join seesion room
+  // Join session room
   socket.on("joinSession", (sessionId) => {
     socket.join(sessionId);
-    console.log("joined room:", sessionId);
+    console.log("Joined room:", sessionId);
   });
 
-  // this is to send message in the room
-  socket.on("sendMessage", ({ sessionId, message }) => {
-    console.log("Message:", message);
+  // Send message (REAL-TIME ONLY)
+  socket.on("sendMessage", ({ sessionId, message, senderId }) => {
+    console.log("incoming message:", message);
+    const msgObj = {
+      text: message,
+      senderId,
+      createdAt: new Date(),
+    };
 
-    // emitting message in the same room
-    io.to(sessionId).emit("receiveMessage", message);
+    // broadcast to all users in room
+    io.to(sessionId).emit("receiveMessage", msgObj);
   });
 
   socket.on("disconnect", () => {
@@ -48,6 +54,7 @@ io.on("connection", (socket) => {
   });
 });
 
+// routes
 app.use("/api/auth", authRoutes);
 app.use("/api/test", testRoutes);
 app.use("/api/session", sessionRoutes);
