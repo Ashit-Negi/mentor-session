@@ -10,7 +10,7 @@ const {
 const { protect, isMentor } = require("../middleware/authmiddleware");
 
 // mentor creates session
-router.post("/create", protect, isMentor, createSession);
+router.post("/create", protect, createSession);
 
 // student joins
 router.get("/join/:sessionId", protect, joinSession);

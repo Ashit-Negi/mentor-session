@@ -5,10 +5,11 @@ const createSession = async (req, res) => {
   try {
     const session = await Session.create({
       mentorId: req.user.id,
+      isActive: true,
     });
     res.json({
       msg: "Session created",
-      session,
+      sessionId: session._id,
     });
   } catch (error) {
     res.status(500).json({ error: error.message });

@@ -1,33 +1,65 @@
-import { useState } from "react";
-import ChatBox from "../chat/ChatBox";
+import { useParams } from "react-router-dom";
+import { useState, useEffect } from "react";
+import ChatBox from "../components/ChatBox";
+import VideoCall from "../components/VideoCall";
+import { socket } from "../socket/socket";
 
 function SessionLayout() {
-  const [isChatOpen, setIsChatOpen] = useState(false);
+  const { sessionId } = useParams();
 
-  const sessionId = "abc123";
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [showConfirm, setShowConfirm] = useState(false);
+
+  // 🔥 END SESSION
+  const confirmEndSession = () => {
+    socket.emit("endSession", sessionId);
+    setShowConfirm(false);
+  };
+
+  useEffect(() => {
+    socket.connect();
+
+    // 🔥 ONLY CONNECT (no navigation here)
+    socket.emit("joinSession", sessionId);
+
+    return () => {
+      socket.disconnect();
+    };
+  }, [sessionId]);
 
   return (
     <div className="h-screen bg-gray-100 p-4">
       <div className="h-full flex gap-4">
-        {/* Editor */}
+        {/* LEFT */}
         <div className="flex-1 bg-white rounded-2xl p-4 shadow flex flex-col">
-          <h2 className="text-lg font-semibold mb-2">Editor</h2>
+          <div className="flex justify-between items-center mb-2">
+            <h2 className="text-lg font-semibold">Code Editor</h2>
+
+            <button
+              onClick={() => setShowConfirm(true)}
+              className="bg-red-600 text-white px-3 py-1 rounded-lg text-sm"
+            >
+              End Session
+            </button>
+          </div>
+
           <div className="flex-1 bg-gray-50 rounded-xl flex items-center justify-center">
             Editor Area
           </div>
         </div>
 
-        {/* Right */}
+        {/* RIGHT */}
         <div className="w-[350px] flex flex-col gap-4">
-          {/* Video */}
+          {/* VIDEO */}
           <div className="flex-1 bg-white rounded-2xl p-4 shadow flex flex-col">
             <h2 className="text-lg font-semibold mb-2">Video</h2>
-            <div className="flex-1 bg-gray-50 rounded-xl flex items-center justify-center">
-              Video Area
+
+            <div className="flex-1 bg-gray-50 rounded-xl overflow-hidden">
+              <VideoCall sessionId={sessionId} />
             </div>
           </div>
 
-          {/* Chat */}
+          {/* CHAT */}
           <div
             className={`bg-white rounded-2xl shadow transition-all duration-300 flex flex-col ${
               isChatOpen ? "h-[300px]" : "h-[60px]"
@@ -41,6 +73,33 @@ function SessionLayout() {
           </div>
         </div>
       </div>
+
+      {/* 🔥 MODAL */}
+      {showConfirm && (
+        <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
+          <div className="bg-white p-6 rounded-xl shadow-lg w-[300px] text-center">
+            <p className="mb-4 font-medium">
+              Are you sure you want to end the session?
+            </p>
+
+            <div className="flex justify-center gap-3">
+              <button
+                onClick={() => setShowConfirm(false)}
+                className="px-3 py-1 bg-gray-300 rounded"
+              >
+                Cancel
+              </button>
+
+              <button
+                onClick={confirmEndSession}
+                className="px-3 py-1 bg-red-600 text-white rounded"
+              >
+                End
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

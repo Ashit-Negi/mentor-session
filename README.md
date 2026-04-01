@@ -1,50 +1,123 @@
-# MVP scope
+# 1-on-1 Mentor–Student Platform
 
-the app allows:
+# MVP Scope
 
-- user authentication(signup/login)
-- mentor can create a session
-- student can join session via a link
-- read-time code editor
-- chat between mentor and student
-- basic video calling(webrtc)
+The application allows:
 
-# day1
+- User authentication (Signup / Login)
+- Mentor can create a session
+- Student can join session via a link
+- Real-time collaborative code editor (planned with Yjs)
+- Chat between mentor and student
+- Basic video calling using WebRTC
 
-- setup frontend and backend with connecting mongodb database.
+# Tech Stack
 
-# day2
+## Frontend
 
-- created user model
-- implemented authentication
-- password hashing using bcrypt
-- jwt-based authentication for secure login
-- build auth apis.
-- create authentication middleware(protect routes and req.user)
-- implemented role-based access control(student / mentor)
-- tested apis using the postman
+- React (Vite)
+- Tailwind CSS
 
-  part 2
+## Backend
 
-- created session system
-- mentor can create sessions
-- strudent can join session via id
-- session can be ended
+- Node.js
+- Express.js
+- Socket.io
+- WebRTC (for video calling)
 
-# day 3-4
+## Database
 
-- implemented socket.io for real-time communication
-- built real-time chat system
-- added session-based room logic
-- ensure stable communication
+- MongoDB
 
-# day 5-6
+## Day 1
 
-- built frontend layout using react-vite.
-- created component-based architecture (chat , layout , etc.)
-- designed session layout(editor , video , chat)
-- integrated real-time chat with socket.io in frontend
-- implemented expandable chat UI
-- added message UI with left/right alignment
-- improved chat UI by click outside to close the chat
-- and used TailwindCSS for designed and making responsive UI
+- Setup frontend and backend
+- Connected MongoDB database
+
+## Day 2
+
+- Created user model
+- Implemented signup/login
+- Password hashing using bcrypt
+- JWT-based authentication
+- Built authentication APIs
+- Created auth middleware (protected routes + req.user)
+- Role-based access control (mentor / student)
+- Tested APIs using Postman
+
+# Session System
+
+- Created session model
+- Mentor can create sessions
+- Student can join via session ID
+- Session end functionality
+
+## Day 3–4
+
+# Real-time Communication
+
+- Integrated Socket.io
+- Built real-time chat system
+- Implemented session-based room logic
+- Ensured stable communication
+
+## Day 5–6
+
+### Frontend Development
+
+- Built UI using React (Vite)
+- Component-based architecture
+- Designed session layout (Editor + Video + Chat)
+- Integrated chat with Socket.io
+- Expandable chat UI
+- Message alignment (left/right)
+- Click outside to close chat
+- Styled using Tailwind CSS
+
+## Day 7–8
+
+### Video Calling (WebRTC)
+
+- Implemented 1-on-1 video calling using WebRTC
+- Built peer-to-peer connection using RTCPeerConnection
+- Implemented signaling using Socket.io:
+  - Offer
+  - Answer
+  - ICE candidates
+- Added:
+  - Start / Stop video
+  - Mute / Unmute microphone
+  - Camera on/off toggle
+- Displayed:
+  - Local video (self view)
+  - Remote video (other user)
+- Handled:
+  - Media stream management
+  - Peer connection lifecycle
+
+## Day 9
+
+# Session Lifecycle & Cleanup
+
+- Implemented "End Session" functionality
+- Real-time session termination using sockets
+- Ensured:
+  - Video call stops for both users
+  - Media tracks are cleaned up properly
+  - Peer connection is closed
+- Redirected users to dashboard after session end
+- Prevented camera/mic leaks after navigation
+
+## Day 10
+
+### Chat System Improvements
+
+- Fixed duplicate message issue
+- Implemented single source of truth via server
+- Added:
+  - Enter key to send message
+  - Optimized socket listeners (no memory leaks)
+  - Clean message handling
+- Improved UX:
+  - Smooth chat interaction
+  - Stable real-time updates

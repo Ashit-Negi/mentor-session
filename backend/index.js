@@ -36,17 +36,37 @@ io.on("connection", (socket) => {
     console.log("Joined room:", sessionId);
   });
 
-  // Send message (REAL-TIME ONLY)
+  // Chat
   socket.on("sendMessage", ({ sessionId, message, senderId }) => {
     console.log("incoming message:", message);
+
     const msgObj = {
       text: message,
       senderId,
       createdAt: new Date(),
     };
 
-    // broadcast to all users in room
     io.to(sessionId).emit("receiveMessage", msgObj);
+  });
+
+  //  END SESSION (CORRECT PLACE)
+  socket.on("endSession", (sessionId) => {
+    console.log("Session ended:", sessionId);
+
+    io.to(sessionId).emit("sessionEnded");
+  });
+
+  // WebRTC signaling
+  socket.on("offer", ({ sessionId, offer }) => {
+    socket.to(sessionId).emit("offer", offer);
+  });
+
+  socket.on("answer", ({ sessionId, answer }) => {
+    socket.to(sessionId).emit("answer", answer);
+  });
+
+  socket.on("ice-candidate", ({ sessionId, candidate }) => {
+    socket.to(sessionId).emit("ice-candidate", candidate);
   });
 
   socket.on("disconnect", () => {
