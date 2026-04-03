@@ -12,33 +12,57 @@ const sessionRoutes = require("./routes/sessionRoutes");
 
 const app = express();
 
-// middleware
-app.use(cors());
+// ✅ CORS FIX (secure)
+app.use(
+  cors({
+    origin: process.env.FRONTEND_URL,
+    credentials: true,
+  }),
+);
+
 app.use(express.json());
 
 connectDB();
 
 const server = http.createServer(app);
 
+// ✅ SOCKET SETUP
 const io = new Server(server, {
   cors: {
-    origin: "*",
+    origin: process.env.FRONTEND_URL,
+    methods: ["GET", "POST"],
   },
 });
 
-// SOCKET LOGIC
+// 🔥 SOCKET AUTH (OPTIONAL BUT RECOMMENDED)
+io.use((socket, next) => {
+  const token = socket.handshake.auth?.token;
+
+  if (!token) {
+    return next(new Error("Unauthorized"));
+  }
+
+  // 👉 future: verify JWT here
+  next();
+});
+
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
-  // Join session room
+  // ✅ JOIN SESSION
   socket.on("joinSession", (sessionId) => {
+    if (!sessionId) return;
+
     socket.join(sessionId);
-    console.log("Joined room:", sessionId);
+    console.log(`User ${socket.id} joined room ${sessionId}`);
+
+    // 🔥 notify others
+    socket.to(sessionId).emit("userJoined");
   });
 
-  // Chat
+  // 💬 CHAT
   socket.on("sendMessage", ({ sessionId, message, senderId }) => {
-    console.log("incoming message:", message);
+    if (!sessionId || !message) return;
 
     const msgObj = {
       text: message,
@@ -49,14 +73,19 @@ io.on("connection", (socket) => {
     io.to(sessionId).emit("receiveMessage", msgObj);
   });
 
-  //  END SESSION (CORRECT PLACE)
+  // 🔴 END SESSION
   socket.on("endSession", (sessionId) => {
+    if (!sessionId) return;
+
     console.log("Session ended:", sessionId);
 
     io.to(sessionId).emit("sessionEnded");
+
+    // optional: clear room
+    // io.socketsLeave(sessionId);
   });
 
-  // WebRTC signaling
+  // 🎥 WebRTC signaling
   socket.on("offer", ({ sessionId, offer }) => {
     socket.to(sessionId).emit("offer", offer);
   });
@@ -69,8 +98,12 @@ io.on("connection", (socket) => {
     socket.to(sessionId).emit("ice-candidate", candidate);
   });
 
+  // ❌ DISCONNECT
   socket.on("disconnect", () => {
-    console.log("User disconnected");
+    console.log("User disconnected:", socket.id);
+
+    // 🔥 optional: notify room
+    // socket.broadcast.emit("userLeft");
   });
 });
 

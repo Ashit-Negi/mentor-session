@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
@@ -9,8 +9,11 @@ function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* DEFAULT REDIRECT */}
+        <Route path="/" element={<Navigate to="/login" />} />
+
         {/* PUBLIC ROUTES */}
-        <Route path="/" element={<Login />} />
+        <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
 
         {/* PROTECTED ROUTES */}
@@ -31,6 +34,9 @@ function App() {
             </ProtectedRoute>
           }
         />
+
+        {/* FALLBACK */}
+        <Route path="*" element={<Navigate to="/login" />} />
       </Routes>
     </BrowserRouter>
   );

@@ -7,15 +7,15 @@ const {
   endSession,
 } = require("../controllers/sessionController");
 
-const { protect, isMentor } = require("../middleware/authmiddleware");
+const { protect, isMentor } = require("../middleware/authMiddleware");
 
-// mentor creates session
-router.post("/create", protect, createSession);
+// ✅ CREATE SESSION (mentor only)
+router.post("/create", protect, isMentor, createSession);
 
-// student joins
+// ✅ JOIN SESSION
 router.get("/join/:sessionId", protect, joinSession);
 
-// mentor ends session
+// ✅ END SESSION (mentor only)
 router.post("/end/:sessionId", protect, isMentor, endSession);
 
 module.exports = router;

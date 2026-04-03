@@ -12,7 +12,13 @@ function SessionLayout() {
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  const user = JSON.parse(localStorage.getItem("user"));
+  // ✅ SAFE USER PARSE
+  let user = null;
+  try {
+    user = JSON.parse(localStorage.getItem("user"));
+  } catch (err) {
+    user = null;
+  }
 
   // 🔥 END SESSION (MENTOR ONLY)
   const confirmEndSession = () => {
@@ -20,17 +26,26 @@ function SessionLayout() {
     setShowConfirm(false);
   };
 
-  // 🔥 INITIAL SETUP
+  // ✅ AUTH CHECK + SOCKET JOIN
   useEffect(() => {
-    if (!user) {
-      alert("Please login first");
-      navigate("/");
+    const token = localStorage.getItem("token");
+
+    if (!user || !token) {
+      navigate("/login");
       return;
     }
 
-    socket.connect();
+    // socket connect only once
+    if (!socket.connected) {
+      socket.connect();
+    }
+
     socket.emit("joinSession", sessionId);
-  }, [sessionId]);
+
+    return () => {
+      socket.off("joinSession");
+    };
+  }, [sessionId, navigate]);
 
   return (
     <div className="h-screen bg-gray-100 p-4">
@@ -66,7 +81,7 @@ function SessionLayout() {
             <div className="flex-1 bg-gray-50 rounded-xl overflow-hidden">
               <VideoCall
                 sessionId={sessionId}
-                isMentor={user?.role === "mentor"} // 🔥 VERY IMPORTANT
+                isMentor={user?.role === "mentor"}
               />
             </div>
           </div>

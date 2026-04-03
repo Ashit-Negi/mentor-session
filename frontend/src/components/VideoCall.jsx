@@ -8,13 +8,34 @@ const VideoCall = ({ sessionId, isMentor }) => {
   const peerRef = useRef(null);
   const iceQueue = useRef([]);
   const isEndingRef = useRef(false);
-  const streamRef = useRef(null); // 🔥 FIX
+  const streamRef = useRef(null);
 
   const navigate = useNavigate();
 
-  const [stream, setStream] = useState(null);
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
+
+  // ✅ SAFE MEDIA ACCESS
+  const getMediaStream = async () => {
+    try {
+      const mediaStream = await navigator.mediaDevices.getUserMedia({
+        video: true,
+        audio: true,
+      });
+
+      streamRef.current = mediaStream;
+
+      if (localVideoRef.current) {
+        localVideoRef.current.srcObject = mediaStream;
+      }
+
+      return mediaStream;
+    } catch (err) {
+      console.error("Media error:", err);
+      alert("Camera/Mic access allow karo ⚠️");
+      return null;
+    }
+  };
 
   // CREATE PEER
   const createPeer = () => {
@@ -51,14 +72,8 @@ const VideoCall = ({ sessionId, isMentor }) => {
   const startConnection = async () => {
     if (peerRef.current) return;
 
-    const mediaStream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true,
-    });
-
-    localVideoRef.current.srcObject = mediaStream;
-    setStream(mediaStream);
-    streamRef.current = mediaStream; // 🔥 FIX
+    const mediaStream = await getMediaStream();
+    if (!mediaStream) return;
 
     const peer = createPeer();
     peerRef.current = peer;
@@ -77,14 +92,8 @@ const VideoCall = ({ sessionId, isMentor }) => {
   const handleOffer = async (offer) => {
     if (peerRef.current) return;
 
-    const mediaStream = await navigator.mediaDevices.getUserMedia({
-      video: true,
-      audio: true,
-    });
-
-    localVideoRef.current.srcObject = mediaStream;
-    setStream(mediaStream);
-    streamRef.current = mediaStream; // 🔥 FIX
+    const mediaStream = await getMediaStream();
+    if (!mediaStream) return;
 
     const peer = createPeer();
     peerRef.current = peer;
@@ -149,17 +158,13 @@ const VideoCall = ({ sessionId, isMentor }) => {
     }
   }, [sessionId, isMentor]);
 
-  // 🔥 FIXED STOP
+  // STOP VIDEO
   const stopVideo = () => {
     if (isEndingRef.current) return;
     isEndingRef.current = true;
 
-    const currentStream = streamRef.current;
-
-    if (currentStream) {
-      currentStream.getTracks().forEach((track) => {
-        track.stop();
-      });
+    if (streamRef.current) {
+      streamRef.current.getTracks().forEach((track) => track.stop());
     }
 
     if (peerRef.current) {
@@ -171,10 +176,9 @@ const VideoCall = ({ sessionId, isMentor }) => {
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
 
     streamRef.current = null;
-    setStream(null);
   };
 
-  // SESSION END LISTENER
+  // SESSION END
   useEffect(() => {
     const handleSessionEnd = () => {
       stopVideo();
@@ -194,26 +198,24 @@ const VideoCall = ({ sessionId, isMentor }) => {
 
   // 🎤 MUTE
   const toggleMute = () => {
-    const currentStream = streamRef.current;
-    if (!currentStream) return;
+    if (!streamRef.current) return;
 
-    currentStream.getAudioTracks().forEach((track) => {
+    streamRef.current.getAudioTracks().forEach((track) => {
       track.enabled = !track.enabled;
     });
 
-    setIsMuted(!isMuted);
+    setIsMuted((prev) => !prev);
   };
 
   // 🎥 CAMERA
   const toggleCamera = () => {
-    const currentStream = streamRef.current;
-    if (!currentStream) return;
+    if (!streamRef.current) return;
 
-    currentStream.getVideoTracks().forEach((track) => {
+    streamRef.current.getVideoTracks().forEach((track) => {
       track.enabled = !track.enabled;
     });
 
-    setIsCameraOff(!isCameraOff);
+    setIsCameraOff((prev) => !prev);
   };
 
   return (
