@@ -17,14 +17,17 @@ const VideoCall = ({ sessionId, isMentor }) => {
 
   // ✅ 🔥 SOCKET CONNECT FIX (ADDED)
   useEffect(() => {
-    socket.connect();
+    if (!socket.connected) {
+      socket.connect();
+    }
 
     socket.on("connect", () => {
-      console.log("Socket connected:", socket.id);
+      console.log("🟢 Socket connected:", socket.id);
     });
 
     return () => {
-      socket.disconnect();
+      socket.off("connect");
+      // ❌ socket.disconnect(); remove karna hai
     };
   }, []);
 
@@ -52,6 +55,8 @@ const VideoCall = ({ sessionId, isMentor }) => {
 
   // CREATE PEER
   const createPeer = () => {
+    console.log("🎯 Creating Peer");
+
     const peer = new RTCPeerConnection({
       iceServers: [
         { urls: "stun:stun.l.google.com:19302" },
@@ -64,6 +69,7 @@ const VideoCall = ({ sessionId, isMentor }) => {
     });
 
     peer.ontrack = (event) => {
+      console.log("📺 Remote stream received");
       if (remoteVideoRef.current && event.streams[0]) {
         remoteVideoRef.current.srcObject = event.streams[0];
       }
@@ -71,6 +77,7 @@ const VideoCall = ({ sessionId, isMentor }) => {
 
     peer.onicecandidate = (event) => {
       if (event.candidate) {
+        console.log("❄️ Sending ICE");
         socket.emit("ice-candidate", {
           sessionId,
           candidate: event.candidate,
@@ -80,7 +87,6 @@ const VideoCall = ({ sessionId, isMentor }) => {
 
     return peer;
   };
-
   // START (MENTOR)
   const startConnection = async () => {
     if (peerRef.current) return;
@@ -103,6 +109,8 @@ const VideoCall = ({ sessionId, isMentor }) => {
 
   // HANDLE OFFER
   const handleOffer = async (offer) => {
+    console.log("📥 Offer received");
+
     if (peerRef.current) return;
 
     const mediaStream = await getMediaStream();
@@ -115,12 +123,7 @@ const VideoCall = ({ sessionId, isMentor }) => {
       peer.addTrack(track, mediaStream);
     });
 
-    await peer.setRemoteDescription(offer);
-
-    for (let c of iceQueue.current) {
-      await peer.addIceCandidate(c);
-    }
-    iceQueue.current = [];
+    await peer.setRemoteDescription(new RTCSessionDescription(offer));
 
     const answer = await peer.createAnswer();
     await peer.setLocalDescription(answer);
@@ -130,21 +133,26 @@ const VideoCall = ({ sessionId, isMentor }) => {
 
   // HANDLE ANSWER
   const handleAnswer = async (answer) => {
-    await peerRef.current?.setRemoteDescription(answer);
+    console.log("📥 Answer received");
 
-    for (let c of iceQueue.current) {
-      await peerRef.current.addIceCandidate(c);
-    }
-    iceQueue.current = [];
+    await peerRef.current?.setRemoteDescription(
+      new RTCSessionDescription(answer),
+    );
   };
-
   // HANDLE ICE
   const handleIce = async (candidate) => {
+    console.log("❄️ ICE received");
+
     if (!peerRef.current) {
       iceQueue.current.push(candidate);
       return;
     }
-    await peerRef.current.addIceCandidate(candidate);
+
+    try {
+      await peerRef.current.addIceCandidate(new RTCIceCandidate(candidate));
+    } catch (err) {
+      console.error("ICE error:", err);
+    }
   };
 
   // SOCKET SETUP
