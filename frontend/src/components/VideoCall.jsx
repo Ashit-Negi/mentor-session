@@ -2,17 +2,17 @@ import { useEffect, useRef, useState } from "react";
 import { socket } from "../socket/socket";
 import { useNavigate } from "react-router-dom";
 
-const VideoCall = ({ sessionId, isMentor }) => {
+const VideoCall = ({ sessionId }) => {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerRef = useRef(null);
   const iceQueue = useRef([]);
-  const isEndingRef = useRef(false);
 
   const navigate = useNavigate();
+
   const [stream, setStream] = useState(null);
 
-  // CREATE PEER
+  // 🔥 CREATE PEER
   const createPeer = () => {
     const peer = new RTCPeerConnection({
       iceServers: [
@@ -26,8 +26,8 @@ const VideoCall = ({ sessionId, isMentor }) => {
     });
 
     peer.ontrack = (event) => {
-      console.log("REMOTE STREAM RECEIVED", event.streams);
-      if (remoteVideoRef.current) {
+      console.log("REMOTE STREAM RECEIVED");
+      if (remoteVideoRef.current && event.streams[0]) {
         remoteVideoRef.current.srcObject = event.streams[0];
       }
     };
@@ -44,7 +44,7 @@ const VideoCall = ({ sessionId, isMentor }) => {
     return peer;
   };
 
-  // START CONNECTION (ONLY MENTOR)
+  // 🔥 START CONNECTION
   const startConnection = async () => {
     if (peerRef.current) return;
 
@@ -69,7 +69,7 @@ const VideoCall = ({ sessionId, isMentor }) => {
     socket.emit("offer", { sessionId, offer });
   };
 
-  // HANDLE OFFER (STUDENT)
+  // 🔥 HANDLE OFFER
   const handleOffer = async (offer) => {
     if (peerRef.current) return;
 
@@ -90,9 +90,10 @@ const VideoCall = ({ sessionId, isMentor }) => {
 
     await peer.setRemoteDescription(offer);
 
-    for (let c of iceQueue.current) {
+    // 🔥 process queued ICE
+    iceQueue.current.forEach(async (c) => {
       await peer.addIceCandidate(c);
-    }
+    });
     iceQueue.current = [];
 
     const answer = await peer.createAnswer();
@@ -101,17 +102,18 @@ const VideoCall = ({ sessionId, isMentor }) => {
     socket.emit("answer", { sessionId, answer });
   };
 
-  // HANDLE ANSWER (MENTOR)
+  // 🔥 HANDLE ANSWER
   const handleAnswer = async (answer) => {
     await peerRef.current?.setRemoteDescription(answer);
 
-    for (let c of iceQueue.current) {
+    // process ICE queue
+    iceQueue.current.forEach(async (c) => {
       await peerRef.current.addIceCandidate(c);
-    }
+    });
     iceQueue.current = [];
   };
 
-  // HANDLE ICE
+  // 🔥 HANDLE ICE
   const handleIce = async (candidate) => {
     if (!peerRef.current) {
       iceQueue.current.push(candidate);
@@ -120,7 +122,7 @@ const VideoCall = ({ sessionId, isMentor }) => {
     await peerRef.current.addIceCandidate(candidate);
   };
 
-  // SOCKET SETUP
+  // 🔥 SOCKET SETUP
   useEffect(() => {
     if (!sessionId) return;
 
@@ -137,56 +139,36 @@ const VideoCall = ({ sessionId, isMentor }) => {
     };
   }, [sessionId]);
 
-  // ONLY MENTOR STARTS
+  // 🔥 AUTO START
   useEffect(() => {
-    if (sessionId && isMentor) {
+    if (sessionId) {
       startConnection();
     }
-  }, [sessionId, isMentor]);
+  }, [sessionId]);
 
-  // STOP VIDEO (SAFE)
+  // 🔥 STOP
   const stopVideo = () => {
-    if (isEndingRef.current) return;
-    isEndingRef.current = true;
+    stream?.getTracks().forEach((track) => track.stop());
+    peerRef.current?.close();
 
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-    }
-
-    if (peerRef.current) {
-      peerRef.current.close();
-      peerRef.current = null;
-    }
+    peerRef.current = null;
+    setStream(null);
 
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
     if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-
-    setStream(null);
   };
 
-  // END SESSION (EMIT)
-  const endSession = () => {
-    socket.emit("endSession", sessionId);
-  };
-
-  // SESSION END LISTENER
+  // 🔥 SESSION END
   useEffect(() => {
-    const handleSessionEnd = () => {
-      console.log("SESSION ENDED");
-
+    socket.on("sessionEnded", () => {
       stopVideo();
+      navigate("/dashboard");
+    });
 
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 300);
-    };
-
-    socket.on("sessionEnded", handleSessionEnd);
-
-    return () => socket.off("sessionEnded", handleSessionEnd);
+    return () => socket.off("sessionEnded");
   }, []);
 
-  // CLEANUP
+  // 🔥 CLEANUP
   useEffect(() => {
     return () => {
       stopVideo();
@@ -195,7 +177,6 @@ const VideoCall = ({ sessionId, isMentor }) => {
 
   return (
     <div className="relative w-full h-full bg-black rounded-xl overflow-hidden">
-      {/* REMOTE VIDEO */}
       <video
         ref={remoteVideoRef}
         autoPlay
@@ -203,7 +184,6 @@ const VideoCall = ({ sessionId, isMentor }) => {
         className="w-full h-full object-cover"
       />
 
-      {/* LOCAL VIDEO */}
       <video
         ref={localVideoRef}
         autoPlay
@@ -212,9 +192,8 @@ const VideoCall = ({ sessionId, isMentor }) => {
         className="w-[120px] h-[90px] absolute bottom-3 right-3 rounded-lg border-2 border-white object-cover"
       />
 
-      {/* END BUTTON */}
       <button
-        onClick={endSession}
+        onClick={stopVideo}
         className="absolute bottom-3 left-3 bg-red-500 text-white px-3 py-1 rounded"
       >
         End Call
