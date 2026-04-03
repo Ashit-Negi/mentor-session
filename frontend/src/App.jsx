@@ -3,15 +3,34 @@ import Login from "./pages/Login";
 import Register from "./pages/Register";
 import Dashboard from "./pages/Dashboard";
 import SessionLayout from "./layout/SessionLayout";
+import ProtectedRoute from "./components/ProtectedRoute";
 
 function App() {
   return (
     <BrowserRouter>
       <Routes>
+        {/* PUBLIC ROUTES */}
         <Route path="/" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/session/:sessionId" element={<SessionLayout />} />
+
+        {/* PROTECTED ROUTES */}
+        <Route
+          path="/dashboard"
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          }
+        />
+
+        <Route
+          path="/session/:sessionId"
+          element={
+            <ProtectedRoute>
+              <SessionLayout />
+            </ProtectedRoute>
+          }
+        />
       </Routes>
     </BrowserRouter>
   );

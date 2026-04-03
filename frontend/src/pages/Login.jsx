@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react"; // 🔥 useEffect add kiya
 import { loginUser } from "../api/authApi";
 import { useNavigate, Link } from "react-router-dom";
 
@@ -9,6 +9,15 @@ function Login() {
   });
 
   const navigate = useNavigate();
+
+  // 🔥 ADD KIYA (kuch delete nahi kiya)
+  useEffect(() => {
+    const user = JSON.parse(localStorage.getItem("user"));
+
+    if (user) {
+      navigate("/dashboard");
+    }
+  }, []);
 
   const handleChange = (e) => {
     setForm({ ...form, [e.target.name]: e.target.value });
