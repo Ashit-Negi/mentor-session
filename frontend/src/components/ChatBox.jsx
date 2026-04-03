@@ -5,7 +5,7 @@ function ChatBox({ sessionId, isChatOpen, setIsChatOpen }) {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
 
-  const currentUser = localStorage.getItem("userId");
+  const currentUser = "user1";
   const chatRef = useRef();
 
   // 🔹 RECEIVE MESSAGES
@@ -48,7 +48,7 @@ function ChatBox({ sessionId, isChatOpen, setIsChatOpen }) {
 
     const msgData = {
       sessionId,
-      text: message,
+      message,
       senderId: currentUser,
     };
 
