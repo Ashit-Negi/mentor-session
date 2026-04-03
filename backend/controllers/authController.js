@@ -5,10 +5,10 @@ const jwt = require("jsonwebtoken");
 // SIGNUP
 const signup = async (req, res) => {
   try {
-    const { name, email, password } = req.body;
+    const { name, email, password, role } = req.body;
 
     // validation
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !role) {
       return res.status(400).json({ msg: "All fields are required" });
     }
 
@@ -23,7 +23,7 @@ const signup = async (req, res) => {
       name,
       email,
       password: hashedPassword,
-      role: "student", // 🔥 FIXED
+      role, // ✅ dynamic role (mentor/student)
     });
 
     const userResponse = {
@@ -38,7 +38,8 @@ const signup = async (req, res) => {
       user: userResponse,
     });
   } catch (error) {
-    res.status(500).json({ error: error.message });
+    console.error("Signup Error:", error.message); // 🔥 helpful debug
+    res.status(500).json({ msg: "Server error" });
   }
 };
 
@@ -86,9 +87,8 @@ const login = async (req, res) => {
       user: userResponse,
     });
   } catch (error) {
-    res.status(500).json({
-      error: error.message,
-    });
+    console.error("Login Error:", error.message);
+    res.status(500).json({ msg: "Server error" });
   }
 };
 

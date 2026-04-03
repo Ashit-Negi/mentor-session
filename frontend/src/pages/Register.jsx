@@ -7,6 +7,7 @@ function Register() {
     name: "",
     email: "",
     password: "",
+    role: "", // 👈 role added
   });
 
   const navigate = useNavigate();
@@ -17,6 +18,12 @@ function Register() {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // 🔥 validation
+    if (!form.role) {
+      alert("Please select a role");
+      return;
+    }
 
     try {
       await registerUser(form);
@@ -39,6 +46,7 @@ function Register() {
 
         {/* Form */}
         <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Name */}
           <input
             name="name"
             type="text"
@@ -48,6 +56,7 @@ function Register() {
             onChange={handleChange}
           />
 
+          {/* Email */}
           <input
             name="email"
             type="email"
@@ -57,6 +66,7 @@ function Register() {
             onChange={handleChange}
           />
 
+          {/* Password */}
           <input
             name="password"
             type="password"
@@ -66,6 +76,32 @@ function Register() {
             onChange={handleChange}
           />
 
+          {/* 🔥 Role Selection */}
+          <div className="flex justify-center gap-6 mt-2">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="role"
+                value="student"
+                checked={form.role === "student"}
+                onChange={handleChange}
+              />
+              Student
+            </label>
+
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="role"
+                value="mentor"
+                checked={form.role === "mentor"}
+                onChange={handleChange}
+              />
+              Mentor
+            </label>
+          </div>
+
+          {/* Register Button */}
           <button className="w-full bg-slate-800 hover:bg-slate-900 text-white py-3 rounded-xl transition shadow">
             Register
           </button>

@@ -1,1 +1,28 @@
 @import "tailwindcss";
+
+/* Remote cursor highlight */
+.yRemoteSelection {
+  background-color: rgba(0, 255, 0, 0.3) !important;
+}
+
+/* Cursor line */
+.yRemoteSelectionHead {
+  position: absolute;
+  border-left: 2px solid red;
+  height: 100%;
+  z-index: 9999 !important;
+}
+
+/* Name label */
+.yRemoteSelectionHead::after {
+  content: attr(data-name);
+  position: absolute;
+  top: -20px;
+  left: 0;
+  background: red;
+  color: white;
+  font-size: 12px;
+  padding: 2px 6px;
+  border-radius: 4px;
+  white-space: nowrap;
+}

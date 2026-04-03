@@ -1,26 +1,38 @@
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { useState, useEffect } from "react";
 import ChatBox from "../components/ChatBox";
 import VideoCall from "../components/VideoCall";
 import { socket } from "../socket/socket";
+import CodeEditor from "../components/CodeEditor";
 
 function SessionLayout() {
   const { sessionId } = useParams();
+  const navigate = useNavigate();
 
   const [isChatOpen, setIsChatOpen] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
-  // 🔥 END SESSION
+  const user = JSON.parse(localStorage.getItem("user"));
+
   const confirmEndSession = () => {
     socket.emit("endSession", sessionId);
     setShowConfirm(false);
   };
 
   useEffect(() => {
-    socket.connect();
+    if (!user) {
+      alert("Please login first");
+      navigate("/");
+      return;
+    }
 
-    // 🔥 ONLY CONNECT (no navigation here)
+    socket.connect();
     socket.emit("joinSession", sessionId);
+
+    socket.on("sessionEnded", () => {
+      alert("Session ended");
+      navigate("/");
+    });
 
     return () => {
       socket.disconnect();
@@ -30,27 +42,28 @@ function SessionLayout() {
   return (
     <div className="h-screen bg-gray-100 p-4">
       <div className="h-full flex gap-4">
-        {/* LEFT */}
         <div className="flex-1 bg-white rounded-2xl p-4 shadow flex flex-col">
           <div className="flex justify-between items-center mb-2">
-            <h2 className="text-lg font-semibold">Code Editor</h2>
+            <h2 className="text-lg font-semibold">
+              Code Editor ({user?.role})
+            </h2>
 
-            <button
-              onClick={() => setShowConfirm(true)}
-              className="bg-red-600 text-white px-3 py-1 rounded-lg text-sm"
-            >
-              End Session
-            </button>
+            {user?.role === "mentor" && (
+              <button
+                onClick={() => setShowConfirm(true)}
+                className="bg-red-600 text-white px-3 py-1 rounded-lg text-sm"
+              >
+                End Session
+              </button>
+            )}
           </div>
 
           <div className="flex-1 bg-gray-50 rounded-xl flex items-center justify-center">
-            Editor Area
+            <CodeEditor sessionId={sessionId} />
           </div>
         </div>
 
-        {/* RIGHT */}
         <div className="w-[350px] flex flex-col gap-4">
-          {/* VIDEO */}
           <div className="flex-1 bg-white rounded-2xl p-4 shadow flex flex-col">
             <h2 className="text-lg font-semibold mb-2">Video</h2>
 
@@ -59,7 +72,6 @@ function SessionLayout() {
             </div>
           </div>
 
-          {/* CHAT */}
           <div
             className={`bg-white rounded-2xl shadow transition-all duration-300 flex flex-col ${
               isChatOpen ? "h-[300px]" : "h-[60px]"
@@ -74,8 +86,7 @@ function SessionLayout() {
         </div>
       </div>
 
-      {/* 🔥 MODAL */}
-      {showConfirm && (
+      {showConfirm && user?.role === "mentor" && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
           <div className="bg-white p-6 rounded-xl shadow-lg w-[300px] text-center">
             <p className="mb-4 font-medium">
