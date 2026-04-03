@@ -15,7 +15,7 @@ function CodeEditor({ sessionId }) {
 
     // 🌐 WebSocket connection
     const provider = new WebsocketProvider(
-      "ws://localhost:1234",
+      import.meta.env.VITE_YJS_URL,
       sessionId,
       ydoc,
     );
