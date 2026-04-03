@@ -14,11 +14,13 @@ function SessionLayout() {
 
   const user = JSON.parse(localStorage.getItem("user"));
 
+  // 🔥 END SESSION (MENTOR ONLY)
   const confirmEndSession = () => {
     socket.emit("endSession", sessionId);
     setShowConfirm(false);
   };
 
+  // 🔥 INITIAL SETUP
   useEffect(() => {
     if (!user) {
       alert("Please login first");
@@ -28,20 +30,12 @@ function SessionLayout() {
 
     socket.connect();
     socket.emit("joinSession", sessionId);
-
-    socket.on("sessionEnded", () => {
-      alert("Session ended");
-      navigate("/");
-    });
-
-    return () => {
-      socket.disconnect();
-    };
   }, [sessionId]);
 
   return (
     <div className="h-screen bg-gray-100 p-4">
       <div className="h-full flex gap-4">
+        {/* LEFT - CODE EDITOR */}
         <div className="flex-1 bg-white rounded-2xl p-4 shadow flex flex-col">
           <div className="flex justify-between items-center mb-2">
             <h2 className="text-lg font-semibold">
@@ -63,15 +57,21 @@ function SessionLayout() {
           </div>
         </div>
 
+        {/* RIGHT SIDE */}
         <div className="w-[350px] flex flex-col gap-4">
+          {/* VIDEO */}
           <div className="flex-1 bg-white rounded-2xl p-4 shadow flex flex-col">
             <h2 className="text-lg font-semibold mb-2">Video</h2>
 
             <div className="flex-1 bg-gray-50 rounded-xl overflow-hidden">
-              <VideoCall sessionId={sessionId} />
+              <VideoCall
+                sessionId={sessionId}
+                isMentor={user?.role === "mentor"} // 🔥 VERY IMPORTANT
+              />
             </div>
           </div>
 
+          {/* CHAT */}
           <div
             className={`bg-white rounded-2xl shadow transition-all duration-300 flex flex-col ${
               isChatOpen ? "h-[300px]" : "h-[60px]"
@@ -86,6 +86,7 @@ function SessionLayout() {
         </div>
       </div>
 
+      {/* CONFIRM MODAL */}
       {showConfirm && user?.role === "mentor" && (
         <div className="fixed inset-0 bg-black bg-opacity-40 flex items-center justify-center">
           <div className="bg-white p-6 rounded-xl shadow-lg w-[300px] text-center">
