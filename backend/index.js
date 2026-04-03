@@ -34,18 +34,6 @@ const io = new Server(server, {
   },
 });
 
-// 🔥 SOCKET AUTH (OPTIONAL BUT RECOMMENDED)
-io.use((socket, next) => {
-  const token = socket.handshake.auth?.token;
-
-  if (!token) {
-    return next(new Error("Unauthorized"));
-  }
-
-  // 👉 future: verify JWT here
-  next();
-});
-
 io.on("connection", (socket) => {
   console.log("User connected:", socket.id);
 
