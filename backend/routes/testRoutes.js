@@ -1,7 +1,7 @@
 const express = require("express");
 const router = express.Router();
 
-const { protect, isMentor } = require("../middleware/authMiddleware");
+const { protect, isMentor } = require("../middleware/authmiddleware");
 
 // ✅ CURRENT USER
 router.get("/me", protect, (req, res) => {

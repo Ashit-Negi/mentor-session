@@ -7,7 +7,7 @@ const {
   endSession,
 } = require("../controllers/sessionController");
 
-const { protect, isMentor } = require("../middleware/authMiddleware");
+const { protect, isMentor } = require("../middleware/authmiddleware");
 
 // ✅ CREATE SESSION (mentor only)
 router.post("/create", protect, isMentor, createSession);
