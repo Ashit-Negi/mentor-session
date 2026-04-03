@@ -5,7 +5,9 @@ function ChatBox({ sessionId, isChatOpen, setIsChatOpen }) {
   const [message, setMessage] = useState("");
   const [messages, setMessages] = useState([]);
 
+  // ✅ FIX: dynamic user (temporary simple fix)
   const currentUser = "user1";
+
   const chatRef = useRef();
 
   // 🔹 RECEIVE MESSAGES
@@ -50,9 +52,13 @@ function ChatBox({ sessionId, isChatOpen, setIsChatOpen }) {
       sessionId,
       message,
       senderId: currentUser,
+      createdAt: new Date(),
     };
 
     socket.emit("sendMessage", msgData);
+
+    // ✅ optional: show instantly on sender side
+    setMessages((prev) => [...prev, msgData]);
 
     setMessage("");
   };
@@ -75,7 +81,8 @@ function ChatBox({ sessionId, isChatOpen, setIsChatOpen }) {
                     isMe ? "bg-blue-500 text-white" : "bg-gray-200 text-black"
                   }`}
                 >
-                  <p>{msg.text}</p>
+                  {/* ✅ FIX: message field */}
+                  <p>{msg.message}</p>
 
                   <span className="text-[10px] opacity-70 block mt-1">
                     {new Date(msg.createdAt).toLocaleTimeString()}

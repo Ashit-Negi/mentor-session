@@ -15,6 +15,19 @@ const VideoCall = ({ sessionId, isMentor }) => {
   const [isMuted, setIsMuted] = useState(false);
   const [isCameraOff, setIsCameraOff] = useState(false);
 
+  // ✅ 🔥 SOCKET CONNECT FIX (ADDED)
+  useEffect(() => {
+    socket.connect();
+
+    socket.on("connect", () => {
+      console.log("Socket connected:", socket.id);
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
   // ✅ SAFE MEDIA ACCESS
   const getMediaStream = async () => {
     try {
