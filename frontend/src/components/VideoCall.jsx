@@ -10,7 +10,10 @@ const VideoCall = ({ sessionId, isMentor }) => {
   const isEndingRef = useRef(false);
 
   const navigate = useNavigate();
+
   const [stream, setStream] = useState(null);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isCameraOff, setIsCameraOff] = useState(false);
 
   // CREATE PEER
   const createPeer = () => {
@@ -43,7 +46,7 @@ const VideoCall = ({ sessionId, isMentor }) => {
     return peer;
   };
 
-  // START CONNECTION (ONLY MENTOR)
+  // START (ONLY MENTOR)
   const startConnection = async () => {
     if (peerRef.current) return;
 
@@ -68,7 +71,7 @@ const VideoCall = ({ sessionId, isMentor }) => {
     socket.emit("offer", { sessionId, offer });
   };
 
-  // HANDLE OFFER (STUDENT)
+  // HANDLE OFFER
   const handleOffer = async (offer) => {
     if (peerRef.current) return;
 
@@ -136,21 +139,19 @@ const VideoCall = ({ sessionId, isMentor }) => {
     };
   }, [sessionId]);
 
-  // ONLY MENTOR STARTS CALL
+  // ONLY MENTOR STARTS
   useEffect(() => {
     if (sessionId && isMentor) {
       startConnection();
     }
   }, [sessionId, isMentor]);
 
-  // SAFE STOP
+  // STOP
   const stopVideo = () => {
     if (isEndingRef.current) return;
     isEndingRef.current = true;
 
-    if (stream) {
-      stream.getTracks().forEach((track) => track.stop());
-    }
+    stream?.getTracks().forEach((track) => track.stop());
 
     if (peerRef.current) {
       peerRef.current.close();
@@ -168,27 +169,38 @@ const VideoCall = ({ sessionId, isMentor }) => {
     socket.emit("endSession", sessionId);
   };
 
-  // SESSION END LISTENER
+  // LISTENER
   useEffect(() => {
     const handleSessionEnd = () => {
       stopVideo();
-
-      setTimeout(() => {
-        navigate("/dashboard");
-      }, 200);
+      setTimeout(() => navigate("/dashboard"), 200);
     };
 
     socket.on("sessionEnded", handleSessionEnd);
-
     return () => socket.off("sessionEnded", handleSessionEnd);
   }, []);
 
-  // CLEANUP
-  useEffect(() => {
-    return () => {
-      stopVideo();
-    };
-  }, []);
+  // 🎤 MUTE / UNMUTE
+  const toggleMute = () => {
+    if (!stream) return;
+
+    stream.getAudioTracks().forEach((track) => {
+      track.enabled = !track.enabled;
+    });
+
+    setIsMuted(!isMuted);
+  };
+
+  // 🎥 CAMERA ON/OFF
+  const toggleCamera = () => {
+    if (!stream) return;
+
+    stream.getVideoTracks().forEach((track) => {
+      track.enabled = !track.enabled;
+    });
+
+    setIsCameraOff(!isCameraOff);
+  };
 
   return (
     <div className="relative w-full h-full bg-black rounded-xl overflow-hidden">
@@ -209,13 +221,29 @@ const VideoCall = ({ sessionId, isMentor }) => {
         className="w-[120px] h-[90px] absolute bottom-3 right-3 rounded-lg border-2 border-white object-cover"
       />
 
-      {/* END BUTTON */}
-      <button
-        onClick={endSession}
-        className="absolute bottom-3 left-3 bg-red-500 text-white px-3 py-1 rounded"
-      >
-        End Call
-      </button>
+      {/* CONTROLS */}
+      <div className="absolute bottom-3 left-3 flex gap-2">
+        <button
+          onClick={toggleMute}
+          className="bg-gray-700 text-white px-3 py-1 rounded"
+        >
+          {isMuted ? "Unmute" : "Mute"}
+        </button>
+
+        <button
+          onClick={toggleCamera}
+          className="bg-gray-700 text-white px-3 py-1 rounded"
+        >
+          {isCameraOff ? "Camera On" : "Camera Off"}
+        </button>
+
+        <button
+          onClick={endSession}
+          className="bg-red-500 text-white px-3 py-1 rounded"
+        >
+          End
+        </button>
+      </div>
     </div>
   );
 };
