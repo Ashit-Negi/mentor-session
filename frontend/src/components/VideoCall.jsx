@@ -6,181 +6,174 @@ const VideoCall = ({ sessionId }) => {
   const localVideoRef = useRef(null);
   const remoteVideoRef = useRef(null);
   const peerRef = useRef(null);
+  const iceQueue = useRef([]);
+
   const navigate = useNavigate();
 
   const [stream, setStream] = useState(null);
-  const [isMuted, setIsMuted] = useState(false);
-  const [isCameraOff, setIsCameraOff] = useState(false);
 
-  // 🔹 START VIDEO
-  const startVideo = async () => {
-    try {
-      if (peerRef.current) return;
+  // 🔥 CREATE PEER
+  const createPeer = () => {
+    const peer = new RTCPeerConnection({
+      iceServers: [
+        { urls: "stun:stun.l.google.com:19302" },
+        {
+          urls: "turn:openrelay.metered.ca:80",
+          username: "openrelayproject",
+          credential: "openrelayproject",
+        },
+      ],
+    });
 
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
-
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = mediaStream;
+    peer.ontrack = (event) => {
+      console.log("REMOTE STREAM RECEIVED");
+      if (remoteVideoRef.current && event.streams[0]) {
+        remoteVideoRef.current.srcObject = event.streams[0];
       }
+    };
 
-      setStream(mediaStream);
+    peer.onicecandidate = (event) => {
+      if (event.candidate) {
+        socket.emit("ice-candidate", {
+          sessionId,
+          candidate: event.candidate,
+        });
+      }
+    };
 
-      const peer = new RTCPeerConnection({
-        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-      });
-
-      peerRef.current = peer;
-
-      mediaStream.getTracks().forEach((track) => {
-        peer.addTrack(track, mediaStream);
-      });
-
-      peer.ontrack = (event) => {
-        if (remoteVideoRef.current && event.streams[0]) {
-          remoteVideoRef.current.srcObject = event.streams[0];
-        }
-      };
-
-      peer.onicecandidate = (event) => {
-        if (event.candidate) {
-          socket.emit("ice-candidate", {
-            sessionId,
-            candidate: event.candidate,
-          });
-        }
-      };
-
-      const offer = await peer.createOffer();
-      await peer.setLocalDescription(offer);
-
-      socket.emit("offer", { sessionId, offer });
-    } catch (err) {
-      console.error(err);
-    }
+    return peer;
   };
 
-  // 🔹 SOCKET LISTENERS
+  // 🔥 START CONNECTION
+  const startConnection = async () => {
+    if (peerRef.current) return;
+
+    const mediaStream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true,
+    });
+
+    localVideoRef.current.srcObject = mediaStream;
+    setStream(mediaStream);
+
+    const peer = createPeer();
+    peerRef.current = peer;
+
+    mediaStream.getTracks().forEach((track) => {
+      peer.addTrack(track, mediaStream);
+    });
+
+    const offer = await peer.createOffer();
+    await peer.setLocalDescription(offer);
+
+    socket.emit("offer", { sessionId, offer });
+  };
+
+  // 🔥 HANDLE OFFER
+  const handleOffer = async (offer) => {
+    if (peerRef.current) return;
+
+    const mediaStream = await navigator.mediaDevices.getUserMedia({
+      video: true,
+      audio: true,
+    });
+
+    localVideoRef.current.srcObject = mediaStream;
+    setStream(mediaStream);
+
+    const peer = createPeer();
+    peerRef.current = peer;
+
+    mediaStream.getTracks().forEach((track) => {
+      peer.addTrack(track, mediaStream);
+    });
+
+    await peer.setRemoteDescription(offer);
+
+    // 🔥 process queued ICE
+    iceQueue.current.forEach(async (c) => {
+      await peer.addIceCandidate(c);
+    });
+    iceQueue.current = [];
+
+    const answer = await peer.createAnswer();
+    await peer.setLocalDescription(answer);
+
+    socket.emit("answer", { sessionId, answer });
+  };
+
+  // 🔥 HANDLE ANSWER
+  const handleAnswer = async (answer) => {
+    await peerRef.current?.setRemoteDescription(answer);
+
+    // process ICE queue
+    iceQueue.current.forEach(async (c) => {
+      await peerRef.current.addIceCandidate(c);
+    });
+    iceQueue.current = [];
+  };
+
+  // 🔥 HANDLE ICE
+  const handleIce = async (candidate) => {
+    if (!peerRef.current) {
+      iceQueue.current.push(candidate);
+      return;
+    }
+    await peerRef.current.addIceCandidate(candidate);
+  };
+
+  // 🔥 SOCKET SETUP
   useEffect(() => {
     if (!sessionId) return;
 
     socket.emit("joinSession", sessionId);
 
-    socket.on("offer", async (offer) => {
-      if (peerRef.current) return;
-
-      const mediaStream = await navigator.mediaDevices.getUserMedia({
-        video: true,
-        audio: true,
-      });
-
-      if (localVideoRef.current) {
-        localVideoRef.current.srcObject = mediaStream;
-      }
-
-      setStream(mediaStream);
-
-      const peer = new RTCPeerConnection({
-        iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-      });
-
-      peerRef.current = peer;
-
-      mediaStream.getTracks().forEach((track) => {
-        peer.addTrack(track, mediaStream);
-      });
-
-      peer.ontrack = (event) => {
-        if (remoteVideoRef.current && event.streams[0]) {
-          remoteVideoRef.current.srcObject = event.streams[0];
-        }
-      };
-
-      peer.onicecandidate = (event) => {
-        if (event.candidate) {
-          socket.emit("ice-candidate", {
-            sessionId,
-            candidate: event.candidate,
-          });
-        }
-      };
-
-      await peer.setRemoteDescription(offer);
-
-      const answer = await peer.createAnswer();
-      await peer.setLocalDescription(answer);
-
-      socket.emit("answer", { sessionId, answer });
-    });
-
-    socket.on("answer", async (answer) => {
-      await peerRef.current?.setRemoteDescription(answer);
-    });
-
-    socket.on("ice-candidate", async (candidate) => {
-      if (candidate) {
-        await peerRef.current?.addIceCandidate(candidate);
-      }
-    });
+    socket.on("offer", handleOffer);
+    socket.on("answer", handleAnswer);
+    socket.on("ice-candidate", handleIce);
 
     return () => {
-      socket.off("offer");
-      socket.off("answer");
-      socket.off("ice-candidate");
+      socket.off("offer", handleOffer);
+      socket.off("answer", handleAnswer);
+      socket.off("ice-candidate", handleIce);
     };
   }, [sessionId]);
 
-  // 🔹 STOP VIDEO
+  // 🔥 AUTO START
+  useEffect(() => {
+    if (sessionId) {
+      startConnection();
+    }
+  }, [sessionId]);
+
+  // 🔥 STOP
   const stopVideo = () => {
     stream?.getTracks().forEach((track) => track.stop());
     peerRef.current?.close();
 
-    if (localVideoRef.current) localVideoRef.current.srcObject = null;
-    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
-
     peerRef.current = null;
     setStream(null);
+
+    if (localVideoRef.current) localVideoRef.current.srcObject = null;
+    if (remoteVideoRef.current) remoteVideoRef.current.srcObject = null;
   };
 
-  // 🔥 SESSION END → CLEAN + NAVIGATE
+  // 🔥 SESSION END
   useEffect(() => {
     socket.on("sessionEnded", () => {
       stopVideo();
       navigate("/dashboard");
     });
 
-    return () => {
-      socket.off("sessionEnded");
-    };
-  }, [stream]);
+    return () => socket.off("sessionEnded");
+  }, []);
 
-  // 🔹 CLEANUP
+  // 🔥 CLEANUP
   useEffect(() => {
     return () => {
-      stream?.getTracks().forEach((track) => track.stop());
-      peerRef.current?.close();
+      stopVideo();
     };
-  }, [stream]);
-
-  // 🔹 MUTE
-  const toggleMute = () => {
-    const track = stream?.getAudioTracks()[0];
-    if (!track) return;
-
-    track.enabled = !track.enabled;
-    setIsMuted(!track.enabled);
-  };
-
-  // 🔹 CAMERA
-  const toggleCamera = () => {
-    const track = stream?.getVideoTracks()[0];
-    if (!track) return;
-
-    track.enabled = !track.enabled;
-    setIsCameraOff(!track.enabled);
-  };
+  }, []);
 
   return (
     <div className="relative w-full h-full bg-black rounded-xl overflow-hidden">
@@ -199,36 +192,12 @@ const VideoCall = ({ sessionId }) => {
         className="w-[120px] h-[90px] absolute bottom-3 right-3 rounded-lg border-2 border-white object-cover"
       />
 
-      <div className="absolute bottom-3 left-3 flex gap-2 flex-wrap">
-        {!stream ? (
-          <button
-            onClick={startVideo}
-            className="bg-green-500 text-white px-3 py-1 rounded"
-          >
-            Start
-          </button>
-        ) : (
-          <>
-            <button
-              onClick={stopVideo}
-              className="bg-red-500 text-white px-3 py-1 rounded"
-            >
-              Stop
-            </button>
-
-            <button onClick={toggleMute} className="bg-white px-3 py-1 rounded">
-              {isMuted ? "Unmute" : "Mute"}
-            </button>
-
-            <button
-              onClick={toggleCamera}
-              className="bg-white px-3 py-1 rounded"
-            >
-              {isCameraOff ? "Camera On" : "Camera Off"}
-            </button>
-          </>
-        )}
-      </div>
+      <button
+        onClick={stopVideo}
+        className="absolute bottom-3 left-3 bg-red-500 text-white px-3 py-1 rounded"
+      >
+        End Call
+      </button>
     </div>
   );
 };
